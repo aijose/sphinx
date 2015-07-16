@@ -12,8 +12,9 @@ import re
 
 from six import iteritems, itervalues, text_type, string_types
 from six.moves import cPickle as pickle
-from docutils.nodes import raw, comment, title, Text, NodeVisitor, SkipNode
+from docutils.nodes import raw, comment, title, section, make_id, Text, NodeVisitor, SkipNode
 from os import path
+import unicodedata
 
 from sphinx.util import jsdump, rpartition
 
@@ -175,8 +176,45 @@ class WordCollector(NodeVisitor):
     def __init__(self, document, lang):
         NodeVisitor.__init__(self, document)
         self.found_words = []
+        self.found_words_refs = {}
+        self.current_title_ref = ''
         self.found_title_words = []
         self.lang = lang
+
+    def find_refid(self,node):
+      if 'ids' in node:
+        return node['ids']
+      elif node.parent != None:
+        return self.find_refid(node.parent)
+      else:
+        return None
+
+    def find_section(self,node):
+      if isinstance(type(node),section):
+        print 'section here'
+      elif node.parent != None:
+        return self.find_section(node.parent)
+      else:
+        print 'no section found'
+        return None
+
+    def find_line(self,node):
+      if node.line != None:
+        if isinstance(type(node),section):
+          print 'section here'
+        return node.line
+      elif node.parent != None:
+        return self.find_line(node.parent)
+      else:
+        return None
+ 
+    def find_title(self,node):
+      if node.line != None:
+        return node.line
+      elif node.parent != None:
+        return self.find_line(node.parent)
+      else:
+        return None
 
     def dispatch_visit(self, node):
         nodetype = type(node)
@@ -192,9 +230,19 @@ class WordCollector(NodeVisitor):
             self.found_words.extend(self.lang.split(nodetext))
             raise SkipNode
         if issubclass(nodetype, Text):
-            self.found_words.extend(self.lang.split(node.astext()))
+            wordlist = self.lang.split(node.astext())
+            for word in wordlist:
+                #new_word = unicodedata.normalize('NFKD', word).encode('ascii','ignore')
+                self.found_words_refs.setdefault(word, set()).add(self.current_title_ref)
+            self.found_words.extend(wordlist)
+            print 'Text node section: ', self.find_section(node)
+            print 'Text node line: ', self.find_line(node), node.source, node.document
+            #print 'Text node content: ', node.astext()
         elif issubclass(nodetype, title):
             self.found_title_words.extend(self.lang.split(node.astext()))
+            print 'Title node line: ', self.find_line(node)
+            print 'Title name : ', node.astext(), make_id(node.astext())
+            self.current_title_ref = make_id(node.astext())
 
 
 class IndexBuilder(object):
@@ -213,6 +261,7 @@ class IndexBuilder(object):
         self._titles = {}
         # stemmed word -> set(filenames)
         self._mapping = {}
+        self._ref_mapping = {}
         # stemmed words in titles -> set(filenames)
         self._title_mapping = {}
         # word -> stemmed word
@@ -353,6 +402,7 @@ class IndexBuilder(object):
 
         visitor = WordCollector(doctree, self.lang)
         doctree.walk(visitor)
+        doctree
 
         # memoize self.lang.stem
         def stem(word):
@@ -368,10 +418,20 @@ class IndexBuilder(object):
             if _filter(word):
                 self._title_mapping.setdefault(word, set()).add(filename)
 
+        #print visitor.found_words_refs
         for word in visitor.found_words:
+            #orig_word = unicodedata.normalize('NFKD', word).encode('ascii','ignore')
+            orig_word = word
+            #print 'original word: ', orig_word
             word = stem(word)
             if word not in self._title_mapping and _filter(word):
                 self._mapping.setdefault(word, set()).add(filename)
+                if orig_word in visitor.found_words_refs.keys():
+                    for ref in visitor.found_words_refs[orig_word]:
+                        #print ref, word, orig_word
+                        self._ref_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+
+        print self._ref_mapping
 
     def context_for_searchtool(self):
         return dict(
