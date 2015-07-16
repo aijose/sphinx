@@ -14,7 +14,6 @@ from six import iteritems, itervalues, text_type, string_types
 from six.moves import cPickle as pickle
 from docutils.nodes import raw, comment, title, make_id, Text, NodeVisitor, SkipNode
 from os import path
-import unicodedata
 
 from sphinx.util import jsdump, rpartition
 
@@ -177,6 +176,7 @@ class WordCollector(NodeVisitor):
         NodeVisitor.__init__(self, document)
         self.found_words = []
         self.found_words_sectionrefs = {}
+        self.title_words_sectionrefs = {}
         self.current_title_ref = ''
         self.found_title_words = []
         self.lang = lang
@@ -196,12 +196,15 @@ class WordCollector(NodeVisitor):
             raise SkipNode
         if issubclass(nodetype, Text):
             wordlist = self.lang.split(node.astext())
+            self.found_words.extend(wordlist)
             for word in wordlist:
                 self.found_words_sectionrefs.setdefault(word, set()).add(self.current_title_ref)
-            self.found_words.extend(wordlist)
         elif issubclass(nodetype, title):
-            self.found_title_words.extend(self.lang.split(node.astext()))
             self.current_title_ref = make_id(node.astext())
+            wordlist = self.lang.split(node.astext())
+            self.found_title_words.extend(wordlist)
+            for word in wordlist:
+                self.title_words_sectionrefs.setdefault(word, set()).add(self.current_title_ref)
 
 
 class IndexBuilder(object):
@@ -220,7 +223,10 @@ class IndexBuilder(object):
         self._titles = {}
         # stemmed word -> set(filenames)
         self._mapping = {}
+        # stemmed word -> set(filenames#references)
         self._section_mapping = {}
+        # stemmed words in titles -> set(filenames#references)
+        self._title_section_mapping = {}
         # stemmed words in titles -> set(filenames)
         self._title_mapping = {}
         # word -> stemmed word
@@ -372,9 +378,13 @@ class IndexBuilder(object):
         _filter = self.lang.word_filter
 
         for word in visitor.found_title_words:
+            original_word = word
             word = stem(word)
             if _filter(word):
                 self._title_mapping.setdefault(word, set()).add(filename)
+                if original_word in visitor.title_words_sectionrefs.keys():
+                    for ref in visitor.title_words_sectionrefs[original_word]:
+                        self._title_section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
 
         for word in visitor.found_words:
             original_word = word
