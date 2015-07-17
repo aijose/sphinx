@@ -200,8 +200,10 @@ class WordCollector(NodeVisitor):
             for word in wordlist:
                 self.found_words_sectionrefs.setdefault(word, set()).add(self.current_title_ref)
         elif issubclass(nodetype, title):
-            self.current_title_ref = make_id(node.astext())
-            wordlist = self.lang.split(node.astext())
+            node_text = node.astext()
+            textid = make_id(node_text)
+            self.current_title_ref = textid
+            wordlist = self.lang.split(node_text)
             self.found_title_words.extend(wordlist)
             for word in wordlist:
                 self.title_words_sectionrefs.setdefault(word, set()).add(self.current_title_ref)
@@ -332,17 +334,31 @@ class IndexBuilder(object):
                     rv[k] = sorted([fn2index[fn] for fn in v if fn in fn2index])
         return rvs
 
+    def get_new_terms(self):
+        rvs = {}, {}
+        for rv, mapping in zip(rvs, (self._section_mapping, self._title_section_mapping)):
+            for k, v in iteritems(mapping):
+                if len(v) == 1:
+                    rv[k] = v
+                else:
+                    rv[k] = sorted(v)
+        return rvs
+
+
     def freeze(self):
         """Create a usable data structure for serializing."""
         filenames, titles = zip(*sorted(self._titles.items()))
         fn2index = dict((f, i) for (i, f) in enumerate(filenames))
         terms, title_terms = self.get_terms(fn2index)
+        terms_sectionrefs, title_terms_sectionrefs = self.get_new_terms()
 
         objects = self.get_objects(fn2index)  # populates _objtypes
         objtypes = dict((v, k[0] + ':' + k[1])
                         for (k, v) in iteritems(self._objtypes))
         objnames = self._objnames
         return dict(filenames=filenames, titles=titles, terms=terms,
+                    terms_sectionrefs=terms_sectionrefs,
+                    title_terms_sectionrefs=title_terms_sectionrefs,
                     objects=objects, objtypes=objtypes, objnames=objnames,
                     titleterms=title_terms, envversion=self.env.version)
 
