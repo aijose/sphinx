@@ -409,7 +409,10 @@ class IndexBuilder(object):
                 self._mapping.setdefault(word, set()).add(filename)
                 if original_word in visitor.found_words_sectionrefs.keys():
                     for ref in visitor.found_words_sectionrefs[original_word]:
-                        self._section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                        if ref:
+                            self._section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                        else:
+                            self._section_mapping.setdefault(word,set()).add(filename+'.html')
 
     def context_for_searchtool(self):
         return dict(
