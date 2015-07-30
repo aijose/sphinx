@@ -178,6 +178,7 @@ class WordCollector(NodeVisitor):
         self.found_words_sectionrefs = {}
         self.title_words_sectionrefs = {}
         self.current_title_ref = ''
+        self.refs_to_names = {}
         self.found_title_words = []
         self.lang = lang
 
@@ -203,6 +204,10 @@ class WordCollector(NodeVisitor):
             node_text = node.astext()
             textid = make_id(node_text)
             self.current_title_ref = textid
+            if textid in self.refs_to_names:
+                print 'Warning: The title "' + node_text + '" occurs more than once in the same file'
+            else:
+                self.refs_to_names[textid] = node_text
             wordlist = self.lang.split(node_text)
             self.found_title_words.extend(wordlist)
             for word in wordlist:
@@ -227,6 +232,7 @@ class IndexBuilder(object):
         self._mapping = {}
         # stemmed word -> set(filenames#references)
         self._section_mapping = {}
+        self._refs_to_names_mapping = {}
         # stemmed words in titles -> set(filenames#references)
         self._title_section_mapping = {}
         # stemmed words in titles -> set(filenames)
@@ -352,12 +358,20 @@ class IndexBuilder(object):
         terms, title_terms = self.get_terms(fn2index)
         terms_sectionrefs, title_terms_sectionrefs = self.get_new_terms()
 
+        section_title_refs = []
+        section_title_names = []
+        for key, value in iteritems(self._refs_to_names_mapping):
+            section_title_refs.append(key)
+            section_title_names.append(value)
+
         objects = self.get_objects(fn2index)  # populates _objtypes
         objtypes = dict((v, k[0] + ':' + k[1])
                         for (k, v) in iteritems(self._objtypes))
         objnames = self._objnames
         return dict(filenames=filenames, titles=titles, terms=terms,
                     terms_sectionrefs=terms_sectionrefs,
+                    section_title_refs=section_title_refs,
+                    section_title_names=section_title_names,
                     title_terms_sectionrefs=title_terms_sectionrefs,
                     objects=objects, objtypes=objtypes, objnames=objnames,
                     titleterms=title_terms, envversion=self.env.version)
@@ -392,6 +406,9 @@ class IndexBuilder(object):
                 self._stem_cache[word] = self.lang.stem(word)
                 return self._stem_cache[word]
         _filter = self.lang.word_filter
+
+        for ref in visitor.refs_to_names:
+            self._refs_to_names_mapping[filename+'.html#'+ref] = visitor.refs_to_names[ref]
 
         for word in visitor.found_title_words:
             original_word = word
