@@ -355,14 +355,18 @@ class IndexBuilder(object):
                     rv[k] = sorted([fn2index[fn] for fn in v if fn in fn2index])
         return rvs
 
-    def get_new_terms(self):
+    def get_new_terms(self,secrefs2index):
         rvs = {}, {}, {}
         for rv, mapping in zip(rvs, (self._section_mapping, self._special_words_section_mapping, self._title_section_mapping)):
             for k, v in iteritems(mapping):
                 if len(v) == 1:
-                    rv[k] = v
+                    #rv[k] = v
+                    fn, = v
+                    if fn in secrefs2index:
+                        rv[k] = secrefs2index[fn]
                 else:
-                    rv[k] = sorted(v)
+                    #rv[k] = sorted(v)
+                    rv[k] = sorted([secrefs2index[fn] for fn in v if fn in secrefs2index])
         return rvs
 
 
@@ -371,13 +375,15 @@ class IndexBuilder(object):
         filenames, titles = zip(*sorted(self._titles.items()))
         fn2index = dict((f, i) for (i, f) in enumerate(filenames))
         terms, title_terms = self.get_terms(fn2index)
-        terms_sectionrefs, special_words_sectionrefs, title_terms_sectionrefs = self.get_new_terms()
 
         section_title_refs = []
         section_title_names = []
         for key, value in iteritems(self._refs_to_names_mapping):
             section_title_refs.append(key)
             section_title_names.append(value)
+
+        secrefs2index = dict((f, i) for (i, f) in enumerate(section_title_refs))
+        terms_sectionrefs, special_words_sectionrefs, title_terms_sectionrefs = self.get_new_terms(secrefs2index)
 
         objects = self.get_objects(fn2index)  # populates _objtypes
         objtypes = dict((v, k[0] + ':' + k[1])
