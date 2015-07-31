@@ -203,10 +203,11 @@ class WordCollector(NodeVisitor):
         elif issubclass(nodetype, title):
             node_text = node.astext()
             textid = make_id(node_text)
-            self.current_title_ref = textid
             if textid in self.refs_to_names:
                 print 'Warning: The title "' + node_text + '" occurs more than once in the same file'
+                print 'Warning: Using "' + self.current_title_ref + '" to refer to it instead'
             else:
+                self.current_title_ref = textid
                 self.refs_to_names[textid] = node_text
             wordlist = self.lang.split(node_text)
             self.found_title_words.extend(wordlist)
@@ -232,6 +233,8 @@ class IndexBuilder(object):
         self._mapping = {}
         # stemmed word -> set(filenames#references)
         self._section_mapping = {}
+        # special word -> set(filenames#references)
+        self._special_words_section_mapping = {}
         self._refs_to_names_mapping = {}
         # stemmed words in titles -> set(filenames#references)
         self._title_section_mapping = {}
@@ -243,6 +246,18 @@ class IndexBuilder(object):
         self._objtypes = {}
         # objtype index -> (domain, type, objname (localized))
         self._objnames = {}
+        self._special_words = set()
+        def remove_nonwords(tuple_array):
+            first_index_list = []
+            for tuple in tuple_array:
+                first_index_list.append(tuple[0])
+            return first_index_list
+        for doc in self.env.all_docs:
+            f = open(self.env.doc2path(doc), 'r')
+            print 'Searching for special words in ', self.env.doc2path(doc)
+            special_words_in_file = re.findall(r':envvar:`(\w+)(\([\w,]+\)){0,1}`',f.read())
+            self._special_words.update(list(remove_nonwords(special_words_in_file)))
+            f.close()
         # add language-specific SearchLanguage instance
         lang_class = languages.get(lang)
         if lang_class is None:
@@ -341,8 +356,8 @@ class IndexBuilder(object):
         return rvs
 
     def get_new_terms(self):
-        rvs = {}, {}
-        for rv, mapping in zip(rvs, (self._section_mapping, self._title_section_mapping)):
+        rvs = {}, {}, {}
+        for rv, mapping in zip(rvs, (self._section_mapping, self._special_words_section_mapping, self._title_section_mapping)):
             for k, v in iteritems(mapping):
                 if len(v) == 1:
                     rv[k] = v
@@ -356,7 +371,7 @@ class IndexBuilder(object):
         filenames, titles = zip(*sorted(self._titles.items()))
         fn2index = dict((f, i) for (i, f) in enumerate(filenames))
         terms, title_terms = self.get_terms(fn2index)
-        terms_sectionrefs, title_terms_sectionrefs = self.get_new_terms()
+        terms_sectionrefs, special_words_sectionrefs, title_terms_sectionrefs = self.get_new_terms()
 
         section_title_refs = []
         section_title_names = []
@@ -370,6 +385,7 @@ class IndexBuilder(object):
         objnames = self._objnames
         return dict(filenames=filenames, titles=titles, terms=terms,
                     terms_sectionrefs=terms_sectionrefs,
+                    special_words_sectionrefs=special_words_sectionrefs,
                     section_title_refs=section_title_refs,
                     section_title_names=section_title_names,
                     title_terms_sectionrefs=title_terms_sectionrefs,
@@ -421,15 +437,24 @@ class IndexBuilder(object):
 
         for word in visitor.found_words:
             original_word = word
-            word = stem(word)
-            if word not in self._title_mapping and _filter(word):
+            flag_special_word = False
+            if original_word in self._special_words:
+                word = original_word.lower()
+                flag_special_word = True
+            else:
+                word = stem(word)
+            if word not in self._title_mapping and (_filter(word) or flag_special_word):
                 self._mapping.setdefault(word, set()).add(filename)
                 if original_word in visitor.found_words_sectionrefs.keys():
                     for ref in visitor.found_words_sectionrefs[original_word]:
-                        if ref:
-                            self._section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                        if not flag_special_word:
+                            if ref:
+                                self._section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                            else:
+                                self._section_mapping.setdefault(word,set()).add(filename+'.html')
                         else:
-                            self._section_mapping.setdefault(word,set()).add(filename+'.html')
+                            self._special_words_section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                            
 
     def context_for_searchtool(self):
         return dict(
