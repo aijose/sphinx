@@ -430,7 +430,7 @@ class IndexBuilder(object):
         _filter = self.lang.word_filter
 
         for ref in visitor.refs_to_names:
-            self._refs_to_names_mapping[filename+'.html#'+ref] = visitor.refs_to_names[ref]
+            self._refs_to_names_mapping[filename+'#'+ref] = visitor.refs_to_names[ref]
 
         for word in visitor.found_title_words:
             original_word = word
@@ -439,7 +439,7 @@ class IndexBuilder(object):
                 self._title_mapping.setdefault(word, set()).add(filename)
                 if original_word in visitor.title_words_sectionrefs.keys():
                     for ref in visitor.title_words_sectionrefs[original_word]:
-                        self._title_section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                        self._title_section_mapping.setdefault(word,set()).add(filename+'#'+ref)
 
         for word in visitor.found_words:
             original_word = word
@@ -455,11 +455,11 @@ class IndexBuilder(object):
                     for ref in visitor.found_words_sectionrefs[original_word]:
                         if not flag_special_word:
                             if ref:
-                                self._section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                                self._section_mapping.setdefault(word,set()).add(filename+'#'+ref)
                             else:
-                                self._section_mapping.setdefault(word,set()).add(filename+'.html')
+                                self._section_mapping.setdefault(word,set()).add(filename)
                         else:
-                            self._special_words_section_mapping.setdefault(word,set()).add(filename+'.html#'+ref)
+                            self._special_words_section_mapping.setdefault(word,set()).add(filename+'#'+ref)
                             
 
     def context_for_searchtool(self):
