@@ -180,8 +180,11 @@ var Search = {
     // console.info('excluded: ', excluded);
 
     // prepare search
-    var terms = this._index.terms;
+    //var terms = this._index.terms;
+    //var titleterms = this._index.titleterms;
+    var terms = this._index.terms_sectionrefs;
     var titleterms = this._index.titleterms;
+    var special_terms = this._index.special_words_sectionrefs;
 
     // array of [filename, title, anchor, descr, score]
     var results = [];
@@ -196,6 +199,7 @@ var Search = {
 
     // lookup as search terms in fulltext
     results = results.concat(this.performTermsSearch(searchterms, excluded, terms, Scorer.term))
+                     .concat(this.performTermsSearch(searchterms, excluded, special_terms, Scorer.term))
                      .concat(this.performTermsSearch(searchterms, excluded, titleterms, Scorer.title));
 
     // let the scorer override scores with a custom scoring function
@@ -363,6 +367,8 @@ var Search = {
   performTermsSearch : function(searchterms, excluded, terms, score) {
     var filenames = this._index.filenames;
     var titles = this._index.titles;
+    var section_refs = this._index.section_title_refs;
+    var section_titles = this._index.section_title_names;
 
     var i, j, file, files;
     var fileMap = {};
@@ -406,7 +412,12 @@ var Search = {
 
       // if we have still a valid result we can add it to the result list
       if (valid) {
-        results.push([filenames[file], titles[file], '', null, score]);
+        var split_section_refs = section_refs[file].split('#');
+        fname=split_section_refs[0];
+        ref=split_section_refs[1];
+        filenum=filenames.indexOf(fname);
+
+        results.push([fname, titles[filenum]+'::'+section_titles[file], '#'+ref, null, score]);
       }
     }
     return results;
