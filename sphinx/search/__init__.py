@@ -449,7 +449,7 @@ class IndexBuilder(object):
                 flag_special_word = True
             else:
                 word = stem(word)
-            if word not in self._title_mapping and (_filter(word) or flag_special_word):
+            if (_filter(word) or flag_special_word):
                 self._mapping.setdefault(word, set()).add(filename)
                 if original_word in visitor.found_words_sectionrefs.keys():
                     for ref in visitor.found_words_sectionrefs[original_word]:
