@@ -422,7 +422,7 @@ var Search = {
         ref=split_section_refs[1];
         filenum=filenames.indexOf(fname);
 
-        results.push([fname, titles[filenum]+'::'+section_titles[file], '#'+ref, null, score]);
+        results.push([fname, titles[filenum]+' --> '+section_titles[file], '#'+ref, null, score]);
       }
     }
     return results;
