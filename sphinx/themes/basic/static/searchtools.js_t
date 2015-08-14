@@ -163,7 +163,7 @@ var Search = {
         continue;
       }
       // stem the word if it is not in the list of special words
-      if (special_terms[tmp[i].toLowerCase()] == undefined) {
+      if (special_terms[tmp[i].toLowerCase()] === undefined) {
         var word = stemmer.stemWord(tmp[i].toLowerCase());
       }
       else {
