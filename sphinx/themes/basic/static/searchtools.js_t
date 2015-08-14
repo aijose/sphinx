@@ -231,6 +231,22 @@ var Search = {
       }
     });
 
+    // Eliminate duplicate entries
+    var list_of_refs = {};
+    var new_results = [];
+    for (i = results.length-1; i >= 0; i--) {
+      if (list_of_refs[results[i][2]] === undefined) {
+        list_of_refs[results[i][2]] = 1;
+        new_results.push(results[i]);
+      }
+    }
+
+    // Copy back in reverse order to retain original ordering
+    results = []
+    for (i = new_results.length-1; i >= 0; i--) {
+      results.push(new_results[i]);
+    }
+
     // for debugging
     //Search.lastresults = results.slice();  // a copy
     //console.info('search results:', Search.lastresults);
