@@ -145,6 +145,11 @@ var Search = {
     var searchterms = [];
     var excluded = [];
     var hlterms = [];
+    //var terms = this._index.terms;
+    //var titleterms = this._index.titleterms;
+    var terms = this._index.terms_sectionrefs;
+    var titleterms = this._index.titleterms;
+    var special_terms = this._index.special_words_sectionrefs;
     var tmp = query.split(/\s+/);
     var objectterms = [];
     for (i = 0; i < tmp.length; i++) {
@@ -157,8 +162,13 @@ var Search = {
         // skip this "word"
         continue;
       }
-      // stem the word
-      var word = stemmer.stemWord(tmp[i].toLowerCase());
+      // stem the word if it is not in the list of special words
+      if (special_terms[tmp[i].toLowerCase()] == undefined) {
+        var word = stemmer.stemWord(tmp[i].toLowerCase());
+      }
+      else {
+        var word = tmp[i].toLowerCase();
+      }
       var toAppend;
       // select the correct list
       if (word[0] == '-') {
@@ -180,11 +190,6 @@ var Search = {
     // console.info('excluded: ', excluded);
 
     // prepare search
-    //var terms = this._index.terms;
-    //var titleterms = this._index.titleterms;
-    var terms = this._index.terms_sectionrefs;
-    var titleterms = this._index.titleterms;
-    var special_terms = this._index.special_words_sectionrefs;
 
     // array of [filename, title, anchor, descr, score]
     var results = [];
