@@ -12,7 +12,7 @@ import re
 
 from six import iteritems, itervalues, text_type, string_types
 from six.moves import cPickle as pickle
-from docutils.nodes import raw, comment, title, make_id, Text, NodeVisitor, SkipNode
+from docutils.nodes import raw, comment, title, table, make_id, Text, NodeVisitor, SkipNode
 from os import path
 
 from sphinx.util import jsdump, rpartition
@@ -207,8 +207,16 @@ class WordCollector(NodeVisitor):
                 print 'Warning: The title "' + node_text + '" occurs more than once in the same file'
                 print 'Warning: Using "' + self.current_title_ref + '" to refer to it instead'
             else:
-                self.current_title_ref = textid
-                self.refs_to_names[textid] = node_text
+                flag_table = False
+                # If it is a table title then ignore it
+                if node.parent:
+                    if issubclass(type(node.parent),table):
+                        flag_table = True
+
+                if not flag_table:
+                    self.current_title_ref = textid
+                    self.refs_to_names[textid] = node_text
+
             wordlist = self.lang.split(node_text)
             self.found_title_words.extend(wordlist)
             for word in wordlist:
