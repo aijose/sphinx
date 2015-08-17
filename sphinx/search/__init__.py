@@ -204,8 +204,8 @@ class WordCollector(NodeVisitor):
             node_text = node.astext()
             textid = make_id(node_text)
             if textid in self.refs_to_names:
-                print 'Warning: The title "' + node_text + '" occurs more than once in the same file'
-                print 'Warning: Using "' + self.current_title_ref + '" to refer to it instead'
+                print '\nWarning: The title "' + node_text + '" occurs more than once in the same file'
+                print 'Warning: Using "' + self.refs_to_names[self.current_title_ref] + '" to refer to it instead\n'
             else:
                 flag_table = False
                 # If it is a table title then ignore it
