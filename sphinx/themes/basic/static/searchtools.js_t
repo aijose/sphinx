@@ -42,6 +42,8 @@ var Scorer = {
 
   // query found in title
   title: 15,
+  // query found in special_terms
+  special_term: 10,
   // query found in terms
   term: 5
 };
@@ -204,7 +206,7 @@ var Search = {
 
     // lookup as search terms in fulltext
     results = results.concat(this.performTermsSearch(searchterms, excluded, terms, Scorer.term))
-                     .concat(this.performTermsSearch(searchterms, excluded, special_terms, Scorer.term))
+                     .concat(this.performTermsSearch(searchterms, excluded, special_terms, Scorer.special_term))
                      .concat(this.performTermsSearch(searchterms, excluded, titleterms, Scorer.title));
 
     // let the scorer override scores with a custom scoring function
