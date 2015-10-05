@@ -147,6 +147,7 @@ var Search = {
     var searchterms = [];
     var excluded = [];
     var hlterms = [];
+    var dont_stem = {gas:1};
     //var terms = this._index.terms;
     //var titleterms = this._index.titleterms;
     var terms = this._index.terms_sectionrefs;
@@ -165,7 +166,7 @@ var Search = {
         continue;
       }
       // stem the word if it is not in the list of special words
-      if (special_terms[tmp[i].toLowerCase()] === undefined) {
+      if (special_terms[tmp[i].toLowerCase()] === undefined && dont_stem[tmp[i].toLowerCase()] === undefined) {
         var word = stemmer.stemWord(tmp[i].toLowerCase());
       }
       else {

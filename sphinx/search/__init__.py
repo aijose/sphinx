@@ -252,6 +252,8 @@ class IndexBuilder(object):
         self._stem_cache = {}
         # objtype -> index
         self._objtypes = {}
+        # These words are likely to be abused by the stemmer
+        self._dont_stem = ["gas"];
         # objtype index -> (domain, type, objname (localized))
         self._objnames = {}
         self._special_words = set()
@@ -442,12 +444,22 @@ class IndexBuilder(object):
 
         for word in visitor.found_title_words:
             original_word = word
-            word = stem(word)
-            if _filter(word):
+            flag_special_word = False
+            if original_word in self._special_words:
+                word = original_word.lower()
+                flag_special_word = True
+            elif original_word.lower() in self._dont_stem:
+                word = original_word.lower()
+            else:
+                word = stem(word)
+            if _filter(word) or flag_special_word:
                 self._title_mapping.setdefault(word, set()).add(filename)
                 if original_word in visitor.title_words_sectionrefs.keys():
                     for ref in visitor.title_words_sectionrefs[original_word]:
-                        self._title_section_mapping.setdefault(word,set()).add(filename+'#'+ref)
+                        if not flag_special_word:
+                            self._title_section_mapping.setdefault(word,set()).add(filename+'#'+ref)
+                        else:
+                            self._special_words_section_mapping.setdefault(word,set()).add(filename+'#'+ref)
 
         for word in visitor.found_words:
             original_word = word
@@ -455,6 +467,8 @@ class IndexBuilder(object):
             if original_word in self._special_words:
                 word = original_word.lower()
                 flag_special_word = True
+            elif original_word.lower() in self._dont_stem:
+                word = original_word.lower()
             else:
                 word = stem(word)
             if (_filter(word) or flag_special_word):
