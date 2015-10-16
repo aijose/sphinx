@@ -254,6 +254,8 @@ class IndexBuilder(object):
         self._objtypes = {}
         # These words are likely to be abused by the stemmer
         self._dont_stem = ["gas"];
+        # These source files are not added to the search index
+        self._exclude_sources = ["index"];
         # objtype index -> (domain, type, objname (localized))
         self._objnames = {}
         self._special_words = set()
@@ -425,6 +427,8 @@ class IndexBuilder(object):
 
     def feed(self, filename, title, doctree):
         """Feed a doctree to the index."""
+        if filename in self._exclude_sources:
+          return
         self._titles[filename] = title
 
         visitor = WordCollector(doctree, self.lang)
