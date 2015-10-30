@@ -253,7 +253,7 @@ class IndexBuilder(object):
         # objtype -> index
         self._objtypes = {}
         # These words are likely to be abused by the stemmer
-        self._dont_stem = ["gas"];
+        self._dont_stem = ["gas","les"];
         # These source files are not added to the search index
         self._exclude_sources = ["index"];
         # objtype index -> (domain, type, objname (localized))
